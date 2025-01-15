@@ -17,16 +17,13 @@
 	"entrypoints": {
 		"main": [
 			"top.bearcabbage.mirrortree.MirrorTree"
-		],
-		"fabric-datagen": [
-			"top.bearcabbage.mirrortree.MirrorTreeDataGenerator"
 		]
 	},
 	"mixins": [
 		"mirrortree.mixins.json"
 	],
 	"depends": {
-		"fabricloader": ">=0.16.10",
+		"fabricloader": ">=0.16.9",
 		"minecraft": "~1.21.1",
 		"java": ">=21",
 		"fabric-api": "*"
