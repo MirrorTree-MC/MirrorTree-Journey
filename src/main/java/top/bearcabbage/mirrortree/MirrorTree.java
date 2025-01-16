@@ -99,19 +99,7 @@ public class MirrorTree implements ModInitializer {
 			if (world.isClient) return ActionResult.SUCCESS;
 			if (world.getRegistryKey().getValue().equals(Identifier.of(MOD_ID,"bedroom"))) {
 				if (world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof BedBlock) {
-					// add Dreaming method
-					if(((LiSPlayer)player).getLS().getRtpSpawn()==null) {
-						Dream.dreaming(world.getServer().getOverworld(), (ServerPlayerEntity) player);
-						return ActionResult.SUCCESS;
-					} else {
-						Dream.pos = ((LiSPlayer)player).getLS().getRtpSpawn();
-						if (Dream.dreamingPos.containsKey(player.getUuid())) {
-							((ServerPlayerEntity)player).teleport(world.getServer().getOverworld(), Dream.dreamingPos.get(player.getUuid()).toCenterPos().getX(), Dream.dreamingPos.get(player.getUuid()).toCenterPos().getY(), Dream.dreamingPos.get(player.getUuid()).toCenterPos().getZ(), 0,0);
-							Dream.dreamingPos.remove(player.getUuid());
-						} else {
-							((ServerPlayerEntity)player).teleport(world.getServer().getOverworld(), Dream.pos.toCenterPos().getX(), Dream.pos.toCenterPos().getY(), Dream.pos.toCenterPos().getZ(), 0,0);
-						}
-					}
+					Dream.dreaming(player.getServer().getOverworld(), (ServerPlayerEntity) player);
 				}
 			}
             return ActionResult.PASS;
@@ -120,34 +108,33 @@ public class MirrorTree implements ModInitializer {
 	}
 
 	private static class Dream{
-		public static final int MAX_RANGE = 50;
+		public static final int MAX_RANGE = 3000;
 		public static BlockPos pos;
-		static long lastTime = 0;
+		public static long lastTime = 0;
 
 		// 暂时没写储存
 		public static final Map<UUID,BlockPos> dreamingPos = Maps.newHashMap();
 
 		public static void dreaming(ServerWorld world, ServerPlayerEntity player) {
-			if (lastTime==0 || System.currentTimeMillis() - lastTime > 3000) {
+			if(((LiSPlayer)player).getLS().getRtpSpawn()==null) {
+				if (lastTime==0 || System.currentTimeMillis() - lastTime > 3000) {
+						lastTime = System.currentTimeMillis();
+						pos = getRandomPos(world);
+					} else {
+						lastTime = System.currentTimeMillis();
+					}
+					player.teleport(world, pos.toCenterPos().getX(), pos.toCenterPos().getY(), pos.toCenterPos().getZ(), 0,0);
+					LanternInStormAPI.setRTPSpawn(player, pos);
+			} else {
+				pos = ((LiSPlayer) player).getLS().getRtpSpawn();
 				lastTime = System.currentTimeMillis();
-				pos = getRandomPos(world);
+				if (dreamingPos.containsKey(player.getUuid())) {
+					((ServerPlayerEntity) player).teleport(world.getServer().getOverworld(), dreamingPos.get(player.getUuid()).toCenterPos().getX(), dreamingPos.get(player.getUuid()).toCenterPos().getY(), dreamingPos.get(player.getUuid()).toCenterPos().getZ(), 0, 0);
+					dreamingPos.remove(player.getUuid());
+				} else {
+					((ServerPlayerEntity) player).teleport(world.getServer().getOverworld(), pos.toCenterPos().getX(), pos.toCenterPos().getY(), pos.toCenterPos().getZ(), 0, 0);
+				}
 			}
-			LOGGER.info(pos.toString());
-			player.teleport(world, pos.toCenterPos().getX(), pos.toCenterPos().getY(), pos.toCenterPos().getZ(), 0,0);
-			LanternInStormAPI.setRTPSpawn(player, pos);
-			//	似乎找不到灯笼实体
-//			BeginningLanternEntity entity = world.getEntitiesByType(BeginningLanternEntity.BEGINNING_LANTERN, player.getBoundingBox().expand(2, 2, 2), lantern -> true).stream().findFirst().orElse(null);
-//			if (entity!=null) {
-//				String customName = entity.getCustomName().getLiteralString();
-//				String pattern = "入梦点\\[(.*?)\\]";
-//				Pattern r = Pattern.compile(pattern);
-//				Matcher m = r.matcher(customName);
-//				String extractedName = "";
-//				if (m.find()) {
-//					extractedName = m.group(1);
-//				}
-//				entity.setCustomName(Text.of("入梦点[" + extractedName + "," + player.getName().getString() + "]"));
-//			}
 		}
 
 		public static void redreaming(ServerWorld world, ServerPlayerEntity player) {
