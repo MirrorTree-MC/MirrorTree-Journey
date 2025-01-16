@@ -11,6 +11,7 @@ import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.Dynamic2CommandExceptionType;
 import com.mojang.brigadier.exceptions.Dynamic4CommandExceptionType;
+import com.sun.jdi.connect.Connector;
 import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -59,6 +60,7 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.state.property.Properties.WATERLOGGED;
 import static net.minecraft.world.World.OVERWORLD;
 
@@ -86,6 +88,7 @@ public class MirrorTree implements ModInitializer {
 
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			LanternInStormAPI.overrideRTPSpawnSetting();
+			LanternInStormAPI.addSafeWorld(bedroom);
 		});
 
 		EntitySleepEvents.START_SLEEPING.register((entity, sleepingLocation) -> {
@@ -102,8 +105,12 @@ public class MirrorTree implements ModInitializer {
 						return ActionResult.SUCCESS;
 					} else {
 						Dream.pos = ((LiSPlayer)player).getLS().getRtpSpawn();
-						((ServerPlayerEntity)player).teleport(world.getServer().getOverworld(), Dream.dreamingPos.get(player.getUuid()).toCenterPos().getX(), Dream.dreamingPos.get(player.getUuid()).toCenterPos().getY(), Dream.dreamingPos.get(player.getUuid()).toCenterPos().getZ(), 0,0);
-						Dream.dreamingPos.remove(player.getUuid());
+						if (Dream.dreamingPos.containsKey(player.getUuid())) {
+							((ServerPlayerEntity)player).teleport(world.getServer().getOverworld(), Dream.dreamingPos.get(player.getUuid()).toCenterPos().getX(), Dream.dreamingPos.get(player.getUuid()).toCenterPos().getY(), Dream.dreamingPos.get(player.getUuid()).toCenterPos().getZ(), 0,0);
+							Dream.dreamingPos.remove(player.getUuid());
+						} else {
+							((ServerPlayerEntity)player).teleport(world.getServer().getOverworld(), Dream.pos.toCenterPos().getX(), Dream.pos.toCenterPos().getY(), Dream.pos.toCenterPos().getZ(), 0,0);
+						}
 					}
 				}
 			}
@@ -173,7 +180,7 @@ public class MirrorTree implements ModInitializer {
                 }
                 blockState = world.getBlockState(blockPos);
             }
-			while(!blockState.get(WATERLOGGED) || blockState.isLiquid() || blockState.isIn(BlockTags.FIRE) || blockState.isIn(BlockTags.LEAVES));
+			while(blockState.isLiquid() || blockState.isIn(BlockTags.FIRE) || blockState.isIn(BlockTags.LEAVES) || (blockState.contains(WATERLOGGED) && blockState.get(WATERLOGGED)));
 			return blockPos;
 		}
 
@@ -200,7 +207,11 @@ public class MirrorTree implements ModInitializer {
 					.executes(context -> {
 						ServerPlayerEntity player = context.getSource().getPlayer();
 						if (player==null) return 0;
-						Dream.redreaming(player.getServer().getOverworld(), player);
+						try {
+							Dream.redreaming(player.getServer().getOverworld(), player);
+						} catch (Exception e) {
+							LOGGER.error(e.getMessage());
+						}
 						return 0;
 					})
 			);
