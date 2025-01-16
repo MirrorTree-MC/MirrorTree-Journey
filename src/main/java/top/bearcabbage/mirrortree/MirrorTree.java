@@ -57,6 +57,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -83,6 +86,8 @@ public class MirrorTree implements ModInitializer {
 		// However, some things (like resources) may still be uninitialized.
 		// Proceed with mild caution.
 
+
+
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment)->MTCommand.registerCommands(dispatcher)); // 调用静态方法注册命令
 
 
@@ -99,7 +104,8 @@ public class MirrorTree implements ModInitializer {
 			if (world.isClient) return ActionResult.SUCCESS;
 			if (world.getRegistryKey().getValue().equals(Identifier.of(MOD_ID,"bedroom"))) {
 				if (world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof BedBlock) {
-					Dream.dreaming(player.getServer().getOverworld(), (ServerPlayerEntity) player);
+//					Dream.dreaming(player.getServer().getOverworld(), (ServerPlayerEntity) player);
+					Dream.queueDreamingTask(player.getServer().getOverworld(), (ServerPlayerEntity) player);
 				}
 			}
             return ActionResult.PASS;
@@ -111,6 +117,49 @@ public class MirrorTree implements ModInitializer {
 		public static final int MAX_RANGE = 3000;
 		public static BlockPos pos;
 		public static long lastTime = 0;
+
+		private static final LinkedBlockingQueue<Runnable> dreamQueue = new LinkedBlockingQueue<>();
+		private static final LinkedBlockingQueue<Runnable> redreamQueue = new LinkedBlockingQueue<>();
+		private static final ExecutorService dreamExecutor = Executors.newSingleThreadExecutor();
+		private static final ExecutorService redreamExecutor = Executors.newSingleThreadExecutor();
+
+		public static void queueDreamingTask(ServerWorld world, ServerPlayerEntity player) {
+			dreamQueue.add(() -> Dream.dreaming(world, player));
+			processDreamQueue();
+		}
+
+		private static void processDreamQueue() {
+			dreamExecutor.submit(() -> {
+				try {
+					while (!dreamQueue.isEmpty()) {
+						Runnable task = dreamQueue.take();
+						task.run();
+					}
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+				}
+			});
+		}
+
+		public static void queueRedreamingTask(ServerWorld world, ServerPlayerEntity player) {
+			redreamQueue.add(() -> Dream.redreaming(world, player));
+			processRedreamQueue();
+		}
+
+		private static void processRedreamQueue() {
+			redreamExecutor.submit(() -> {
+				try {
+					while (!redreamQueue.isEmpty()) {
+						Runnable task = redreamQueue.take();
+						task.run();
+					}
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+				}
+			});
+		}
+
+
 
 		// 暂时没写储存
 		public static final Map<UUID,BlockPos> dreamingPos = Maps.newHashMap();
@@ -195,7 +244,7 @@ public class MirrorTree implements ModInitializer {
 						ServerPlayerEntity player = context.getSource().getPlayer();
 						if (player==null) return 0;
 						try {
-							Dream.redreaming(player.getServer().getOverworld(), player);
+							Dream.queueRedreamingTask(player.getServer().getOverworld(), player);
 						} catch (Exception e) {
 							LOGGER.error(e.getMessage());
 						}
