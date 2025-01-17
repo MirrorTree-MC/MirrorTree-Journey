@@ -18,6 +18,8 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.BedBlock;
 import net.minecraft.block.BlockState;
+import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
+import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.BlockTags;
@@ -123,6 +125,8 @@ public class MirrorTree implements ModInitializer {
 			if (!player.getServerWorld().getRegistryKey().equals(bedroom) && LanternInStormAPI.getRTPSpawn(player) == null) {
 				player.teleport(player.getServer().getWorld(bedroom), bedroomX_init, bedroomY_init, bedroomZ_init, 0, 0);
 				player.changeGameMode(GameMode.ADVENTURE);
+				player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("你来到了狐狸的生前住所").formatted(Formatting.BOLD)));
+				player.networkHandler.sendPacket(new SubtitleS2CPacket(Text.literal("原来这里就是梦境的入口…").formatted(Formatting.GRAY).formatted(Formatting.ITALIC)));
 			}
 		});
 
@@ -251,6 +255,7 @@ public class MirrorTree implements ModInitializer {
 						ServerWorld bedroom = player.getServer().getWorld(MirrorTree.bedroom);
 						player.teleport(bedroom, bedroomX, bedroomY, bedroomZ, 0,0);
 						player.changeGameMode(GameMode.ADVENTURE);
+						player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("你醒来了").formatted(Formatting.BOLD).formatted(Formatting.BLUE)));
 						return 0;
 					})
 			);
@@ -323,7 +328,11 @@ public class MirrorTree implements ModInitializer {
 			if (jsonObject.has(key)) {
 				return jsonObject.get(key).getAsInt();
 			}
-			return defaultValue;
+			else {
+				set(key, defaultValue);
+				save();
+				return defaultValue;
+			}
 		}
 
 		public <T> T getAll(Class<T> clazz) {
