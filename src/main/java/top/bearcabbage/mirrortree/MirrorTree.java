@@ -45,6 +45,7 @@ import net.minecraft.server.world.ServerWorld;
 import top.bearcabbage.lanterninstorm.LanternInStormAPI;
 import top.bearcabbage.lanterninstorm.lantern.BeginningLanternEntity;
 import top.bearcabbage.lanterninstorm.player.LiSPlayer;
+import xyz.nikitacartes.easyauth.utils.PlayerAuth;
 
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -57,6 +58,7 @@ import java.util.concurrent.*;
 
 import static net.minecraft.state.property.Properties.WATERLOGGED;
 import static top.bearcabbage.lanterninstorm.LanternInStorm.MOD_ID;
+import static xyz.nikitacartes.easyauth.EasyAuth.langConfig;
 
 public class MirrorTree implements ModInitializer {
 	public static final String MOD_ID = "mirrortree";
@@ -133,6 +135,14 @@ public class MirrorTree implements ModInitializer {
 				player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("你来到了狐狸的生前住所").formatted(Formatting.BOLD)));
 				player.networkHandler.sendPacket(new SubtitleS2CPacket(Text.literal("原来这里就是梦境的入口…").formatted(Formatting.GRAY).formatted(Formatting.ITALIC)));
 				fresh_player.put(player, 0);
+			}
+		});
+
+		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+			ServerPlayerEntity player = handler.player;
+			if (((PlayerAuth) player).easyAuth$isAuthenticated() && !((PlayerAuth) player).easyAuth$canSkipAuth()) {
+				((PlayerAuth) player).easyAuth$setAuthenticated(false);
+				((PlayerAuth) player).easyAuth$saveLastLocation(true);
 			}
 		});
 
