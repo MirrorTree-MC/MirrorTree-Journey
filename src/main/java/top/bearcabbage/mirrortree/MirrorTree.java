@@ -11,6 +11,7 @@ import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.EntitySleepEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
@@ -72,8 +73,9 @@ public class MirrorTree implements ModInitializer {
 	public static int bedroomY_init;
 	public static int bedroomZ_init;
 
-	public static final Item FOX_TAIL_ITEM = Registry.register(Registries.ITEM, Identifier.of(MOD_ID, "fox_tail_item"), new Item(new Item.Settings().maxCount(99)));
+	public static final Map<ServerPlayerEntity, Integer> fresh_player = new HashMap<>();
 
+	public static final Item FOX_TAIL_ITEM = Registry.register(Registries.ITEM, Identifier.of(MOD_ID, "fox_tail_item"), new Item(new Item.Settings().maxCount(99)));
 
 	@Override
 	public void onInitialize() {
@@ -132,8 +134,25 @@ public class MirrorTree implements ModInitializer {
 				player.changeGameMode(GameMode.ADVENTURE);
 				player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("你来到了狐狸的生前住所").formatted(Formatting.BOLD)));
 				player.networkHandler.sendPacket(new SubtitleS2CPacket(Text.literal("原来这里就是梦境的入口…").formatted(Formatting.GRAY).formatted(Formatting.ITALIC)));
+				fresh_player.put(player, 0);
 			}
 		});
+
+		ServerTickEvents.END_WORLD_TICK.register(world -> {
+			if (world.getRegistryKey().equals(bedroom)) {
+				fresh_player.forEach((player, time) -> {
+					if (time < 100) {
+						fresh_player.put(player, time + 1);
+					} else {
+						player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("现在，进去吧…").formatted(Formatting.BOLD).formatted(Formatting.BLUE)));
+						player.networkHandler.sendPacket(new SubtitleS2CPacket(Text.literal("去床上睡一觉").formatted(Formatting.GRAY).formatted(Formatting.ITALIC)));
+						fresh_player.remove(player);
+					}
+				});
+			}
+		});
+
+
 
 	}
 
