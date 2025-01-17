@@ -56,18 +56,28 @@ import static net.minecraft.state.property.Properties.WATERLOGGED;
 public class MirrorTree implements ModInitializer {
 	public static final String MOD_ID = "mirrortree";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+	public static final Config config = new Config(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("config.json"));
 	public static final Config dream = new Config(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("dream_data.json"));
 	public static RegistryKey<World> bedroom = RegistryKey.of(RegistryKeys.WORLD, Identifier.of(MOD_ID, "bedroom"));
-	public static int bedroomX = 0;
-	public static int bedroomY = 80;
-	public static int bedroomZ = 0;
+	public static int bedroomX;
+	public static int bedroomY;
+	public static int bedroomZ;
+	public static int bedroomX_init;
+	public static int bedroomY_init;
+	public static int bedroomZ_init;
 
 
 	@Override
 	public void onInitialize() {
-		// This code runs as soon as Minecraft is in a mod-load-ready state.
-		// However, some things (like resources) may still be uninitialized.
-		// Proceed with mild caution.
+
+		bedroomX = config.getInt("bedroomX", 0);
+		bedroomY = config.getInt("bedroomY", 80);
+		bedroomZ = config.getInt("bedroomZ", 0);
+		bedroomX_init = config.getInt("bedroomX_init", 0);
+		bedroomY_init = config.getInt("bedroomY_init", 100);
+		bedroomZ_init = config.getInt("bedroomZ_init", 0);
+
+
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment)->MTCommand.registerCommands(dispatcher)); // 调用静态方法注册命令
 
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
@@ -110,8 +120,8 @@ public class MirrorTree implements ModInitializer {
 
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			ServerPlayerEntity player = handler.player;
-			if (!player.getServerWorld().getRegistryKey().equals(bedroom) || LanternInStormAPI.getRTPSpawn(player) == null) {
-				player.teleport(player.getServer().getWorld(bedroom), bedroomX, bedroomY, bedroomZ, 0, 0);
+			if (!player.getServerWorld().getRegistryKey().equals(bedroom) && LanternInStormAPI.getRTPSpawn(player) == null) {
+				player.teleport(player.getServer().getWorld(bedroom), bedroomX_init, bedroomY_init, bedroomZ_init, 0, 0);
 				player.changeGameMode(GameMode.ADVENTURE);
 			}
 		});
@@ -307,6 +317,13 @@ public class MirrorTree implements ModInitializer {
 
 		public <T> T get(String key, Class<T> clazz) {
 			return gson.fromJson(jsonObject.get(key), clazz);
+		}
+
+		public int getInt(String key, int defaultValue) {
+			if (jsonObject.has(key)) {
+				return jsonObject.get(key).getAsInt();
+			}
+			return defaultValue;
 		}
 
 		public <T> T getAll(Class<T> clazz) {
