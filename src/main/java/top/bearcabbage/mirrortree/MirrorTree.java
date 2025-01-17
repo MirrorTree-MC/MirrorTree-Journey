@@ -18,8 +18,11 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.BedBlock;
 import net.minecraft.block.BlockState;
+import net.minecraft.item.Item;
 import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.BlockTags;
@@ -54,6 +57,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import static net.minecraft.state.property.Properties.WATERLOGGED;
+import static top.bearcabbage.lanterninstorm.LanternInStorm.MOD_ID;
 
 public class MirrorTree implements ModInitializer {
 	public static final String MOD_ID = "mirrortree";
@@ -68,6 +72,8 @@ public class MirrorTree implements ModInitializer {
 	public static int bedroomY_init;
 	public static int bedroomZ_init;
 
+	public static final Item FOX_TAIL_ITEM = Registry.register(Registries.ITEM, Identifier.of(MOD_ID, "fox_tail_item"), new Item(new Item.Settings().maxCount(99)));
+
 
 	@Override
 	public void onInitialize() {
@@ -78,7 +84,6 @@ public class MirrorTree implements ModInitializer {
 		bedroomX_init = config.getInt("bedroomX_init", 0);
 		bedroomY_init = config.getInt("bedroomY_init", 100);
 		bedroomZ_init = config.getInt("bedroomZ_init", 0);
-
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment)->MTCommand.registerCommands(dispatcher)); // 调用静态方法注册命令
 
