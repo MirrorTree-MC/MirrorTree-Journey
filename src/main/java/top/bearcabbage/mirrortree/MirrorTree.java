@@ -53,9 +53,7 @@ import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 
 import static net.minecraft.state.property.Properties.WATERLOGGED;
 import static top.bearcabbage.lanterninstorm.LanternInStorm.MOD_ID;
@@ -73,7 +71,7 @@ public class MirrorTree implements ModInitializer {
 	public static int bedroomY_init;
 	public static int bedroomZ_init;
 
-	public static final Map<ServerPlayerEntity, Integer> fresh_player = new HashMap<>();
+	public static final Map<ServerPlayerEntity, Integer> fresh_player = new ConcurrentHashMap<>();
 
 	public static final Item FOX_TAIL_ITEM = Registry.register(Registries.ITEM, Identifier.of(MOD_ID, "fox_tail_item"), new Item(new Item.Settings().maxCount(99)));
 
@@ -140,15 +138,19 @@ public class MirrorTree implements ModInitializer {
 
 		ServerTickEvents.END_WORLD_TICK.register(world -> {
 			if (world.getRegistryKey().equals(bedroom)) {
-				fresh_player.forEach((player, time) -> {
+				Iterator<Map.Entry<ServerPlayerEntity, Integer>> iterator = fresh_player.entrySet().iterator();
+				while (iterator.hasNext()) {
+					Map.Entry<ServerPlayerEntity, Integer> entry = iterator.next();
+					ServerPlayerEntity player = entry.getKey();
+					int time = entry.getValue();
 					if (time < 100) {
 						fresh_player.put(player, time + 1);
 					} else {
 						player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("现在，进去吧…").formatted(Formatting.BOLD).formatted(Formatting.BLUE)));
 						player.networkHandler.sendPacket(new SubtitleS2CPacket(Text.literal("去床上睡一觉").formatted(Formatting.GRAY).formatted(Formatting.ITALIC)));
-						fresh_player.remove(player);
+						iterator.remove(); // 使用 Iterator 进行删除操作
 					}
-				});
+				}
 			}
 		});
 
