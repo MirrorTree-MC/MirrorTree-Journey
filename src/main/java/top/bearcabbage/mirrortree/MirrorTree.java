@@ -156,7 +156,7 @@ public class MirrorTree implements ModInitializer {
 					if (time < 100) {
 						fresh_player.put(player, time + 1);
 					} else {
-						player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("现在，进去吧…").formatted(Formatting.BOLD).formatted(Formatting.BLUE)));
+						player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("现在，进到房子里去吧…").formatted(Formatting.BOLD).formatted(Formatting.BLUE)));
 						player.networkHandler.sendPacket(new SubtitleS2CPacket(Text.literal("去床上睡一觉").formatted(Formatting.GRAY).formatted(Formatting.ITALIC)));
 						iterator.remove(); // 使用 Iterator 进行删除操作
 					}
