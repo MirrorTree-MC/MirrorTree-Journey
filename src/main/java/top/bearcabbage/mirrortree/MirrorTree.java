@@ -128,7 +128,7 @@ public class MirrorTree implements ModInitializer {
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			ServerPlayerEntity player = handler.player;
 			if (!player.getServerWorld().getRegistryKey().equals(bedroom) && LanternInStormAPI.getRTPSpawn(player) == null) {
-				player.teleport(player.getServer().getWorld(bedroom), bedroomX_init, bedroomY_init, bedroomZ_init, 0, 0);
+				player.teleport(player.getServer().getWorld(bedroom), bedroomX_init, bedroomY_init, bedroomZ_init, 90, 0);
 				player.changeGameMode(GameMode.ADVENTURE);
 				player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("你来到了狐狸的生前住所").formatted(Formatting.BOLD)));
 				player.networkHandler.sendPacket(new SubtitleS2CPacket(Text.literal("原来这里就是梦境的入口…").formatted(Formatting.GRAY).formatted(Formatting.ITALIC)));
