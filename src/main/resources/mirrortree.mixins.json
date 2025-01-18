@@ -1,3 +1,11 @@
 {
-	"required": false
+	"required": true,
+	"package": "top.bearcabbage.mirrortree.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"PlayerManagerMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
 }

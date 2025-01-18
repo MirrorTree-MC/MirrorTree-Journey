@@ -19,6 +19,8 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.BedBlock;
 import net.minecraft.block.BlockState;
+import net.minecraft.entity.effect.StatusEffect;
+import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.item.Item;
 import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
@@ -26,9 +28,11 @@ import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.stat.Stats;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.HoverEvent;
 import net.minecraft.text.Text;
@@ -45,6 +49,7 @@ import net.minecraft.server.world.ServerWorld;
 import top.bearcabbage.lanterninstorm.LanternInStormAPI;
 import top.bearcabbage.lanterninstorm.lantern.BeginningLanternEntity;
 import top.bearcabbage.lanterninstorm.player.LiSPlayer;
+import xyz.nikitacartes.easyauth.EasyAuth;
 import xyz.nikitacartes.easyauth.utils.PlayerAuth;
 
 import java.io.FileReader;
@@ -58,6 +63,7 @@ import java.util.concurrent.*;
 
 import static net.minecraft.state.property.Properties.WATERLOGGED;
 import static top.bearcabbage.lanterninstorm.LanternInStorm.MOD_ID;
+import static top.bearcabbage.mirrortree.MirrorTree.Dream.dreamingEffects;
 import static xyz.nikitacartes.easyauth.EasyAuth.langConfig;
 
 public class MirrorTree implements ModInitializer {
@@ -129,8 +135,10 @@ public class MirrorTree implements ModInitializer {
 
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			ServerPlayerEntity player = handler.player;
-			if (!player.getServerWorld().getRegistryKey().equals(bedroom) && LanternInStormAPI.getRTPSpawn(player) == null) {
-				player.teleport(player.getServer().getWorld(bedroom), bedroomX_init, bedroomY_init, bedroomZ_init, 90, 0);
+			if (player.getStatHandler().getStat(Stats.CUSTOM.getOrCreateStat(Stats.DEATHS)) == 0
+					&& player.getStatHandler().getStat(Stats.CUSTOM.getOrCreateStat(Stats.WALK_ONE_CM)) == 0) {
+				player.setYaw(90);
+				player.setSpawnPoint(bedroom, new BlockPos(bedroomX_init, bedroomY_init, bedroomZ_init), 90, true, false);
 				player.changeGameMode(GameMode.ADVENTURE);
 				player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("你来到了狐狸的生前住所").formatted(Formatting.BOLD)));
 				player.networkHandler.sendPacket(new SubtitleS2CPacket(Text.literal("原来这里就是梦境的入口…").formatted(Formatting.GRAY).formatted(Formatting.ITALIC)));
@@ -216,9 +224,11 @@ public class MirrorTree implements ModInitializer {
 
 		// 正常关服时写文件储存数据
 		public static final Map<UUID, double[]> dreamingPos = Maps.newHashMap();
+		// 这个不写入
+		public static final Map<UUID, Collection<StatusEffectInstance>> dreamingEffects = Maps.newHashMap();
 
 		public static void dreaming(ServerWorld world, ServerPlayerEntity player) {
-			if(((LiSPlayer)player).getLS().getRtpSpawn()==null) {
+			if(LanternInStormAPI.getRTPSpawn(player)==null) {
 				if (lastTime==0 || System.currentTimeMillis() - lastTime > 3000) {
 						lastTime = System.currentTimeMillis();
 						pos = getRandomPos(world);
@@ -228,7 +238,7 @@ public class MirrorTree implements ModInitializer {
 					player.teleport(world, pos.toCenterPos().getX(), pos.toCenterPos().getY(), pos.toCenterPos().getZ(), 0,0);
 					LanternInStormAPI.setRTPSpawn(player, pos);
 			} else {
-				pos = ((LiSPlayer) player).getLS().getRtpSpawn();
+				pos = LanternInStormAPI.getRTPSpawn(player);
 				lastTime = System.currentTimeMillis();
 				if (dreamingPos.containsKey(player.getUuid())) {
 					((ServerPlayerEntity) player).teleport(world.getServer().getOverworld(), dreamingPos.get(player.getUuid())[0]+0.5, dreamingPos.get(player.getUuid())[1]+0.5, dreamingPos.get(player.getUuid())[2]+0.5, 0, 0);
@@ -238,6 +248,12 @@ public class MirrorTree implements ModInitializer {
 				}
 			}
 			player.changeGameMode(GameMode.SURVIVAL);
+			if (dreamingEffects.containsKey(player.getUuid())) {
+				for (StatusEffectInstance effect : dreamingEffects.get(player.getUuid())) {
+					player.addStatusEffect(effect);
+				}
+				dreamingEffects.remove(player.getUuid());
+			}
 		}
 
 		public static void redreaming(ServerWorld world, ServerPlayerEntity player) {
@@ -291,6 +307,8 @@ public class MirrorTree implements ModInitializer {
 						ServerWorld bedroom = player.getServer().getWorld(MirrorTree.bedroom);
 						player.teleport(bedroom, bedroomX, bedroomY, bedroomZ, 0,0);
 						player.changeGameMode(GameMode.ADVENTURE);
+						dreamingEffects.put(player.getUuid(), player.getStatusEffects());
+						player.clearStatusEffects();
 						player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("你醒来了").formatted(Formatting.BOLD).formatted(Formatting.BLUE)));
 						return 0;
 					})
