@@ -62,9 +62,6 @@ import java.util.*;
 import java.util.concurrent.*;
 
 import static net.minecraft.state.property.Properties.WATERLOGGED;
-import static top.bearcabbage.lanterninstorm.LanternInStorm.MOD_ID;
-import static top.bearcabbage.mirrortree.MirrorTree.Dream.dreamingEffects;
-import static xyz.nikitacartes.easyauth.EasyAuth.langConfig;
 
 public class MirrorTree implements ModInitializer {
 	public static final String MOD_ID = "mirrortree";
@@ -307,7 +304,7 @@ public class MirrorTree implements ModInitializer {
 						ServerWorld bedroom = player.getServer().getWorld(MirrorTree.bedroom);
 						player.teleport(bedroom, bedroomX, bedroomY, bedroomZ, 0,0);
 						player.changeGameMode(GameMode.ADVENTURE);
-						dreamingEffects.put(player.getUuid(), player.getStatusEffects());
+						Dream.dreamingEffects.put(player.getUuid(), player.getStatusEffects());
 						player.clearStatusEffects();
 						player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("你醒来了").formatted(Formatting.BOLD).formatted(Formatting.BLUE)));
 						return 0;
