@@ -120,9 +120,9 @@ public class MirrorTree implements ModInitializer {
 		});
 
 		UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
-			if (world.isClient) return ActionResult.SUCCESS;
 			if (world.getRegistryKey().getValue().equals(Identifier.of(MOD_ID,"bedroom"))) {
 				if (world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof BedBlock) {
+					if (world.isClient) return ActionResult.SUCCESS;
 					Dream.queueDreamingTask(player.getServer().getOverworld(), (ServerPlayerEntity) player);
 					return ActionResult.SUCCESS;
 				}
@@ -223,6 +223,7 @@ public class MirrorTree implements ModInitializer {
 		public static final Map<UUID, double[]> dreamingPos = Maps.newHashMap();
 		// 这个不写入
 		public static final Map<UUID, Collection<StatusEffectInstance>> dreamingEffects = Maps.newHashMap();
+		public static final Map<UUID, ArrayList<Float>> dreamingHealthAndHunger = Maps.newHashMap();
 
 		public static void dreaming(ServerWorld world, ServerPlayerEntity player) {
 			if(LanternInStormAPI.getRTPSpawn(player)==null) {
@@ -250,6 +251,14 @@ public class MirrorTree implements ModInitializer {
 					player.addStatusEffect(effect);
 				}
 				dreamingEffects.remove(player.getUuid());
+			}
+			if (dreamingHealthAndHunger.containsKey(player.getUuid())) {
+				ArrayList<Float> healthAndHunger = dreamingHealthAndHunger.get(player.getUuid());
+				player.setHealth(healthAndHunger.get(0));
+				player.getHungerManager().setFoodLevel((int) Math.floor(healthAndHunger.get(1)));
+				player.getHungerManager().setSaturationLevel(healthAndHunger.get(2));
+				player.getHungerManager().setExhaustion(healthAndHunger.get(3));
+				dreamingHealthAndHunger.remove(player.getUuid());
 			}
 		}
 
@@ -305,6 +314,12 @@ public class MirrorTree implements ModInitializer {
 						player.teleport(bedroom, bedroomX, bedroomY, bedroomZ, 0,0);
 						player.changeGameMode(GameMode.ADVENTURE);
 						Dream.dreamingEffects.put(player.getUuid(), player.getStatusEffects());
+						ArrayList<Float> healthAndHunger = new ArrayList<>();
+						healthAndHunger.add(player.getHealth());
+						healthAndHunger.add((float) player.getHungerManager().getFoodLevel());
+						healthAndHunger.add(player.getHungerManager().getSaturationLevel());
+						healthAndHunger.add(player.getHungerManager().getExhaustion());
+						Dream.dreamingHealthAndHunger.put(player.getUuid(), healthAndHunger);
 						player.clearStatusEffects();
 						player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("你醒来了").formatted(Formatting.BOLD).formatted(Formatting.BLUE)));
 						return 0;
