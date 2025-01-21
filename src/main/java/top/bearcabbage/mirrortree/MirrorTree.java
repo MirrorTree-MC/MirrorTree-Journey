@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import eu.pb4.universalshops.registry.TradeShopBlock;
 import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -19,6 +20,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.BedBlock;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.DoorBlock;
 import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.item.Item;
@@ -121,6 +123,7 @@ public class MirrorTree implements ModInitializer {
 
 		UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
 			if (world.getRegistryKey().getValue().equals(Identifier.of(MOD_ID,"bedroom"))) {
+				if (!(world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof BedBlock || world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof DoorBlock || world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof TradeShopBlock)) return ActionResult.FAIL;
 				if (world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof BedBlock) {
 					if (world.isClient) return ActionResult.SUCCESS;
 					Dream.queueDreamingTask(player.getServer().getOverworld(), (ServerPlayerEntity) player);
