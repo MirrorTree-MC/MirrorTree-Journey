@@ -15,7 +15,9 @@ import net.fabricmc.fabric.api.entity.event.v1.EntitySleepEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.*;
@@ -130,6 +132,20 @@ public class MirrorTree implements ModInitializer {
 			}
             return ActionResult.PASS;
         });
+
+		UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
+			if (world.getRegistryKey().getValue().equals(Identifier.of(MOD_ID,"bedroom"))) {
+				if (!player.isCreative()) return ActionResult.FAIL;
+			}
+			return ActionResult.PASS;
+		});
+
+		AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
+			if (world.getRegistryKey().getValue().equals(Identifier.of(MOD_ID,"bedroom"))) {
+				if (!player.isCreative()) return ActionResult.FAIL;
+			}
+			return ActionResult.PASS;
+		});
 
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			ServerPlayerEntity player = handler.player;
