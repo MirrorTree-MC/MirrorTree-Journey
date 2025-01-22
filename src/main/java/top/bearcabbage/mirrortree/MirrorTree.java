@@ -1,18 +1,10 @@
 package top.bearcabbage.mirrortree;
 
-import com.google.common.collect.Maps;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import eu.pb4.universalshops.registry.TradeShopBlock;
 import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.EntitySleepEvents;
-import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
@@ -21,9 +13,6 @@ import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.*;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.effect.StatusEffect;
-import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.item.Item;
 import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
@@ -31,9 +20,6 @@ import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.registry.tag.BlockTags;
-import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.stat.Stats;
 import net.minecraft.text.ClickEvent;
@@ -48,29 +34,17 @@ import net.minecraft.world.GameMode;
 import net.minecraft.world.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import net.minecraft.server.world.ServerWorld;
 import top.bearcabbage.lanterninstorm.LanternInStormAPI;
-import top.bearcabbage.lanterninstorm.lantern.BeginningLanternEntity;
-import top.bearcabbage.lanterninstorm.player.LiSPlayer;
-import xyz.nikitacartes.easyauth.EasyAuth;
 import xyz.nikitacartes.easyauth.utils.PlayerAuth;
 
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.lang.reflect.Array;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.*;
-
-import static net.minecraft.state.property.Properties.WATERLOGGED;
 
 public class MirrorTree implements ModInitializer {
 	public static final String MOD_ID = "mirrortree";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-	public static final Config config = new Config(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("config.json"));
-	public static final Config dream = new Config(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("dream_data.json"));
+	public static final MTConfig MT_CONFIG = new MTConfig(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("MT_CONFIG.json"));
+	public static final MTConfig dream = new MTConfig(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("dream_data.json"));
 	public static RegistryKey<World> bedroom = RegistryKey.of(RegistryKeys.WORLD, Identifier.of(MOD_ID, "bedroom"));
 	public static int bedroomX;
 	public static int bedroomY;
@@ -86,19 +60,19 @@ public class MirrorTree implements ModInitializer {
 	@Override
 	public void onInitialize() {
 
-		bedroomX = config.getInt("bedroomX", 0);
-		bedroomY = config.getInt("bedroomY", 80);
-		bedroomZ = config.getInt("bedroomZ", 0);
-		bedroomX_init = config.getInt("bedroomX_init", 0);
-		bedroomY_init = config.getInt("bedroomY_init", 100);
-		bedroomZ_init = config.getInt("bedroomZ_init", 0);
+		bedroomX = MT_CONFIG.getInt("bedroomX", 0);
+		bedroomY = MT_CONFIG.getInt("bedroomY", 80);
+		bedroomZ = MT_CONFIG.getInt("bedroomZ", 0);
+		bedroomX_init = MT_CONFIG.getInt("bedroomX_init", 0);
+		bedroomY_init = MT_CONFIG.getInt("bedroomY_init", 100);
+		bedroomZ_init = MT_CONFIG.getInt("bedroomZ_init", 0);
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment)->MTCommand.registerCommands(dispatcher)); // 调用静态方法注册命令
 
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			LanternInStormAPI.overrideRTPSpawnSetting();
 			LanternInStormAPI.addSafeWorld(bedroom);
-			Dream.dreamingPos.clear();
+			MTDream.dreamingPos.clear();
             try {
 				dream.getAll(Map.class).forEach((uuid, pos) -> {
 					ArrayList<Double> posList = (ArrayList<Double>) pos;
@@ -106,7 +80,7 @@ public class MirrorTree implements ModInitializer {
 					for (int i = 0; i < 3; i++) {
 						posArray[i] = posList.get(i);
 					}
-					Dream.dreamingPos.put(UUID.fromString((String) uuid), posArray);
+					MTDream.dreamingPos.put(UUID.fromString((String) uuid), posArray);
 				});
             } catch (Exception e) {
 				LOGGER.error(e.getMessage());
@@ -114,7 +88,7 @@ public class MirrorTree implements ModInitializer {
         });
 
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
-			Dream.dreamingPos.forEach((uuid, pos) -> dream.set(String.valueOf(uuid), pos));
+			MTDream.dreamingPos.forEach((uuid, pos) -> dream.set(String.valueOf(uuid), pos));
 			dream.save();
 		});
 
@@ -127,7 +101,7 @@ public class MirrorTree implements ModInitializer {
 				if (!world.isClient && !player.isCreative() && !(world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof BedBlock || world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof DoorBlock || world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof TradeShopBlock || world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof GrassBlock || world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof LecternBlock)) return ActionResult.FAIL;
 				if (world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof BedBlock) {
 					if (world.isClient) return ActionResult.SUCCESS;
-					Dream.queueDreamingTask(player.getServer().getOverworld(), (ServerPlayerEntity) player);
+					MTDream.queueDreamingTask(player.getServer().getOverworld(), (ServerPlayerEntity) player);
 					return ActionResult.SUCCESS;
 				}
 			}
@@ -190,243 +164,4 @@ public class MirrorTree implements ModInitializer {
 
 
 	}
-
-	private static class Dream{
-		public static final int MAX_RANGE = 3000;
-		private static final int DREAM_RANDOM_RANGE = 16;
-		public static BlockPos pos;
-		public static long lastTime = 0;
-
-		private static final LinkedBlockingQueue<Runnable> dreamQueue = new LinkedBlockingQueue<>();
-		private static final LinkedBlockingQueue<Runnable> redreamQueue = new LinkedBlockingQueue<>();
-		private static final ExecutorService dreamExecutor = Executors.newSingleThreadExecutor();
-		private static final ExecutorService redreamExecutor = Executors.newSingleThreadExecutor();
-
-		public static void queueDreamingTask(ServerWorld world, ServerPlayerEntity player) {
-			dreamQueue.add(() -> Dream.dreaming(world, player));
-			processDreamQueue();
-		}
-
-		private static void processDreamQueue() {
-			dreamExecutor.submit(() -> {
-				try {
-					while (!dreamQueue.isEmpty()) {
-						Runnable task = dreamQueue.take();
-						task.run();
-					}
-				} catch (InterruptedException e) {
-					Thread.currentThread().interrupt();
-				}
-			});
-		}
-
-		public static void queueRedreamingTask(ServerWorld world, ServerPlayerEntity player) {
-			redreamQueue.add(() -> Dream.redreaming(world, player));
-			processRedreamQueue();
-		}
-
-		private static void processRedreamQueue() {
-			redreamExecutor.submit(() -> {
-				try {
-					while (!redreamQueue.isEmpty()) {
-						Runnable task = redreamQueue.take();
-						task.run();
-					}
-				} catch (InterruptedException e) {
-					Thread.currentThread().interrupt();
-				}
-			});
-		}
-
-		// 正常关服时写文件储存数据
-		public static final Map<UUID, double[]> dreamingPos = Maps.newHashMap();
-		// 这个不写入
-		public static final Map<UUID, Collection<StatusEffectInstance>> dreamingEffects = Maps.newHashMap();
-		public static final Map<UUID, ArrayList<Float>> dreamingHealthAndHunger = Maps.newHashMap();
-
-		public static void dreaming(ServerWorld world, ServerPlayerEntity player) {
-			if(LanternInStormAPI.getRTPSpawn(player)==null) {
-				BlockPos pos_tmp;
-				if (lastTime==0 || System.currentTimeMillis() - lastTime > 3000) {
-					lastTime = System.currentTimeMillis();
-					pos_tmp = pos = getRandomPos(world, 0, 0, MAX_RANGE);
-				} else {
-					lastTime = System.currentTimeMillis();
-					pos_tmp = getRandomPos(world, pos.getX(), pos.getZ(), DREAM_RANDOM_RANGE);
-				}
-				player.teleport(world, pos_tmp.toCenterPos().getX(), pos_tmp.toCenterPos().getY(), pos_tmp.toCenterPos().getZ(), 0,0);
-				LanternInStormAPI.setRTPSpawn(player, pos);
-			} else {
-				pos = LanternInStormAPI.getRTPSpawn(player);
-				lastTime = System.currentTimeMillis();
-				if (dreamingPos.containsKey(player.getUuid())) {
-					((ServerPlayerEntity) player).teleport(world.getServer().getOverworld(), dreamingPos.get(player.getUuid())[0]+0.5, dreamingPos.get(player.getUuid())[1]+0.5, dreamingPos.get(player.getUuid())[2]+0.5, 0, 0);
-					dreamingPos.remove(player.getUuid());
-				} else {
-					((ServerPlayerEntity) player).teleport(world.getServer().getOverworld(), pos.toCenterPos().getX(), pos.toCenterPos().getY(), pos.toCenterPos().getZ(), 0, 0);
-				}
-			}
-			player.changeGameMode(GameMode.SURVIVAL);
-			if (dreamingEffects.containsKey(player.getUuid())) {
-				for (StatusEffectInstance effect : dreamingEffects.get(player.getUuid())) {
-					player.addStatusEffect(effect);
-				}
-				dreamingEffects.remove(player.getUuid());
-			}
-			if (dreamingHealthAndHunger.containsKey(player.getUuid())) {
-				ArrayList<Float> healthAndHunger = dreamingHealthAndHunger.get(player.getUuid());
-				player.setHealth(healthAndHunger.get(0));
-				player.getHungerManager().setFoodLevel((int) Math.floor(healthAndHunger.get(1)));
-				player.getHungerManager().setSaturationLevel(healthAndHunger.get(2));
-				player.getHungerManager().setExhaustion(healthAndHunger.get(3));
-				dreamingHealthAndHunger.remove(player.getUuid());
-			}
-		}
-
-		public static void redreaming(ServerWorld world, ServerPlayerEntity player) {
-			((LiSPlayer)player).getLS().setRtpSpawn(null);
-			List<BeginningLanternEntity> entities = (List<BeginningLanternEntity>) player.getServerWorld().getEntitiesByType(BeginningLanternEntity.BEGINNING_LANTERN, (entity)-> entity.getCustomName().getString().contains("入梦点["+player.getName().getString()+"]"));
-			if (!entities.isEmpty()) entities.forEach(Entity::discard);
-            Dream.dreamingPos.remove(player.getUuid());
-			Dream.dreamingEffects.remove(player.getUuid());
-			Dream.dreamingHealthAndHunger.remove(player.getUuid());
-			player.teleport(world.getServer().getWorld(bedroom), bedroomX_init, bedroomY_init, bedroomZ_init, 90,0);
-			player.clearStatusEffects();
-			player.changeGameMode(GameMode.ADVENTURE);
-			player.setSpawnPoint(bedroom, new BlockPos(bedroomX_init, bedroomY_init, bedroomZ_init), 90, true, false);
-		}
-
-		private static BlockPos getRandomPos(ServerWorld world, int xx, int zz, int range) {
-            BlockPos blockPos = null;
-            BlockState blockState = null;
-            do {
-				Random random = new Random();
-                int x,z;
-                x = xx + random.nextInt(-range, range);
-                z = zz + random.nextInt(-range, range);
-                while (x*x+z*z>range*range){
-                    x = xx + random.nextInt(-range, range);
-                    z = zz + random.nextInt(-range, range);
-                }
-                blockPos = new BlockPos(x, world.getHeight(), z);
-                while(world.getBlockState(blockPos).isAir()){
-                    blockPos = blockPos.down();
-                }
-                blockState = world.getBlockState(blockPos);
-            }
-			while(blockState.isLiquid() || blockState.isIn(BlockTags.FIRE) || blockState.isIn(BlockTags.LEAVES) || (blockState.contains(WATERLOGGED) && blockState.get(WATERLOGGED)));
-			return blockPos;
-		}
-
-
-	}
-
-	private static class MTCommand {
-
-		public static void registerCommands(CommandDispatcher<ServerCommandSource> dispatcher) {
-			dispatcher.register(LiteralArgumentBuilder.<ServerCommandSource>literal("wakeup")
-					.executes(context -> {
-						ServerPlayerEntity player = context.getSource().getPlayer();
-						if (player==null) return 0;
-						if (!player.isSleeping()) return 0;
-						player.wakeUp();
-						double[] pos = {player.getBlockPos().getX(), player.getBlockPos().getY(), player.getBlockPos().getZ()};
-						Dream.dreamingPos.put(player.getUuid(), pos);
-						ServerWorld bedroom = player.getServer().getWorld(MirrorTree.bedroom);
-						player.teleport(bedroom, bedroomX, bedroomY, bedroomZ, 0,0);
-						player.changeGameMode(GameMode.ADVENTURE);
-						Dream.dreamingEffects.put(player.getUuid(), player.getStatusEffects());
-						ArrayList<Float> healthAndHunger = new ArrayList<>();
-						healthAndHunger.add(player.getHealth());
-						healthAndHunger.add((float) player.getHungerManager().getFoodLevel());
-						healthAndHunger.add(player.getHungerManager().getSaturationLevel());
-						healthAndHunger.add(player.getHungerManager().getExhaustion());
-						Dream.dreamingHealthAndHunger.put(player.getUuid(), healthAndHunger);
-						player.clearStatusEffects();
-						player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("你醒来了").formatted(Formatting.BOLD).formatted(Formatting.BLUE)));
-						return 0;
-					})
-			);
-			dispatcher.register(LiteralArgumentBuilder.<ServerCommandSource>literal("redream")
-					.requires(source -> source.hasPermissionLevel(2))
-					.executes(context -> {
-						ServerPlayerEntity player = context.getSource().getPlayer();
-						if (player==null) return 0;
-						try {
-							Dream.queueRedreamingTask(player.getServer().getOverworld(), player);
-						} catch (Exception e) {
-							LOGGER.error(e.getMessage());
-						}
-						return 0;
-					})
-			);
-		}
-	}
-
-	public static class Config {
-		private final Path filePath;
-		private JsonObject jsonObject;
-		private final Gson gson;
-
-		public Config(Path filePath) {
-			this.filePath = filePath;
-			this.gson = new GsonBuilder().setPrettyPrinting().create();
-			try {
-				if (Files.notExists(filePath.getParent())) {
-					Files.createDirectories(filePath.getParent());
-				}
-				if (Files.notExists(filePath)) {
-					Files.createFile(filePath);
-					try (FileWriter writer = new FileWriter(filePath.toFile())) {
-						writer.write("{}");
-					}
-				}
-
-			} catch (IOException e) {
-				LOGGER.error(e.toString());
-			}
-			load();
-		}
-
-		public void load() {
-			try (FileReader reader = new FileReader(filePath.toFile())) {
-				this.jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
-			} catch (IOException e) {
-				this.jsonObject = new JsonObject();
-			}
-		}
-
-		public void save() {
-			try (FileWriter writer = new FileWriter(filePath.toFile())) {
-				gson.toJson(jsonObject, writer);
-			} catch (IOException e) {
-				LOGGER.error(e.toString());
-			}
-		}
-
-		public void set(String key, Object value) {
-			jsonObject.add(key, gson.toJsonTree(value));
-		}
-
-		public <T> T get(String key, Class<T> clazz) {
-			return gson.fromJson(jsonObject.get(key), clazz);
-		}
-
-		public int getInt(String key, int defaultValue) {
-			if (jsonObject.has(key)) {
-				return jsonObject.get(key).getAsInt();
-			}
-			else {
-				set(key, defaultValue);
-				save();
-				return defaultValue;
-			}
-		}
-
-		public <T> T getAll(Class<T> clazz) {
-			return gson.fromJson(jsonObject, clazz);
-		}
-
-	}
-
 }
