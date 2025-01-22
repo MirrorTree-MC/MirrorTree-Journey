@@ -21,6 +21,7 @@ import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.*;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.item.Item;
@@ -192,6 +193,7 @@ public class MirrorTree implements ModInitializer {
 
 	private static class Dream{
 		public static final int MAX_RANGE = 3000;
+		private static final int DREAM_RANDOM_RANGE = 16;
 		public static BlockPos pos;
 		public static long lastTime = 0;
 
@@ -244,14 +246,16 @@ public class MirrorTree implements ModInitializer {
 
 		public static void dreaming(ServerWorld world, ServerPlayerEntity player) {
 			if(LanternInStormAPI.getRTPSpawn(player)==null) {
+				BlockPos pos_tmp;
 				if (lastTime==0 || System.currentTimeMillis() - lastTime > 3000) {
-						lastTime = System.currentTimeMillis();
-						pos = getRandomPos(world);
-					} else {
-						lastTime = System.currentTimeMillis();
-					}
-					player.teleport(world, pos.toCenterPos().getX(), pos.toCenterPos().getY(), pos.toCenterPos().getZ(), 0,0);
-					LanternInStormAPI.setRTPSpawn(player, pos);
+					lastTime = System.currentTimeMillis();
+					pos_tmp = pos = getRandomPos(world, 0, 0, MAX_RANGE);
+				} else {
+					lastTime = System.currentTimeMillis();
+					pos_tmp = getRandomPos(world, pos.getX(), pos.getZ(), DREAM_RANDOM_RANGE);
+				}
+				player.teleport(world, pos_tmp.toCenterPos().getX(), pos_tmp.toCenterPos().getY(), pos_tmp.toCenterPos().getZ(), 0,0);
+				LanternInStormAPI.setRTPSpawn(player, pos);
 			} else {
 				pos = LanternInStormAPI.getRTPSpawn(player);
 				lastTime = System.currentTimeMillis();
@@ -281,29 +285,28 @@ public class MirrorTree implements ModInitializer {
 
 		public static void redreaming(ServerWorld world, ServerPlayerEntity player) {
 			((LiSPlayer)player).getLS().setRtpSpawn(null);
-			List<BeginningLanternEntity> entities = (List<BeginningLanternEntity>) player.getServerWorld().getEntitiesByType(BeginningLanternEntity.BEGINNING_LANTERN, (entity)-> entity.getCustomName().getString().contains(player.getName().getString()));
-			if (entities.size()>0) {
-				entities.get(0).discard();
-			}
-			BlockPos pos1 = getRandomPos(world);
-			player.teleport(world, pos1.toCenterPos().getX(), pos1.toCenterPos().getY(), pos1.toCenterPos().getZ(), 0,0);
-			LanternInStormAPI.setRTPSpawn(player, pos1);
+			List<BeginningLanternEntity> entities = (List<BeginningLanternEntity>) player.getServerWorld().getEntitiesByType(BeginningLanternEntity.BEGINNING_LANTERN, (entity)-> entity.getCustomName().getString().equals("入梦点["+player.getName().getString()+"]"));
+			if (!entities.isEmpty()) entities.forEach(Entity::discard);
+            Dream.dreamingPos.remove(player.getUuid());
+			Dream.dreamingEffects.remove(player.getUuid());
+			Dream.dreamingHealthAndHunger.remove(player.getUuid());
+			player.teleport(world.getServer().getWorld(bedroom), bedroomX_init, bedroomY_init, bedroomZ_init, 90,0);
+			player.setSpawnPoint(bedroom, new BlockPos(bedroomX_init, bedroomY_init, bedroomZ_init), 90, true, false);
 		}
 
-		private static BlockPos getRandomPos(ServerWorld world) {
+		private static BlockPos getRandomPos(ServerWorld world, int xx, int zz, int range) {
             BlockPos blockPos = null;
             BlockState blockState = null;
             do {
 				Random random = new Random();
                 int x,z;
-                x = random.nextInt(-MAX_RANGE, MAX_RANGE);
-                z = random.nextInt(-MAX_RANGE, MAX_RANGE);
-                while (x*x+z*z>MAX_RANGE*MAX_RANGE){
-                    x = random.nextInt(-MAX_RANGE, MAX_RANGE);
-                    z = random.nextInt(-MAX_RANGE, MAX_RANGE);
+                x = xx + random.nextInt(-range, range);
+                z = zz + random.nextInt(-range, range);
+                while (x*x+z*z>range*range){
+                    x = xx + random.nextInt(-range, range);
+                    z = zz + random.nextInt(-range, range);
                 }
                 blockPos = new BlockPos(x, world.getHeight(), z);
-//				LOGGER.info(blockPos.toString());
                 while(world.getBlockState(blockPos).isAir()){
                     blockPos = blockPos.down();
                 }
