@@ -43,7 +43,7 @@ import java.util.concurrent.*;
 public class MirrorTree implements ModInitializer {
 	public static final String MOD_ID = "mirrortree";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-	public static final MTConfig MT_CONFIG = new MTConfig(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("MT_CONFIG.json"));
+	public static final MTConfig config = new MTConfig(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("config.json"));
 	public static final MTConfig dream = new MTConfig(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("dream_data.json"));
 	public static RegistryKey<World> bedroom = RegistryKey.of(RegistryKeys.WORLD, Identifier.of(MOD_ID, "bedroom"));
 	public static int bedroomX;
@@ -60,12 +60,12 @@ public class MirrorTree implements ModInitializer {
 	@Override
 	public void onInitialize() {
 
-		bedroomX = MT_CONFIG.getInt("bedroomX", 0);
-		bedroomY = MT_CONFIG.getInt("bedroomY", 80);
-		bedroomZ = MT_CONFIG.getInt("bedroomZ", 0);
-		bedroomX_init = MT_CONFIG.getInt("bedroomX_init", 0);
-		bedroomY_init = MT_CONFIG.getInt("bedroomY_init", 100);
-		bedroomZ_init = MT_CONFIG.getInt("bedroomZ_init", 0);
+		bedroomX = config.getInt("bedroomX", 0);
+		bedroomY = config.getInt("bedroomY", 80);
+		bedroomZ = config.getInt("bedroomZ", 0);
+		bedroomX_init = config.getInt("bedroomX_init", 0);
+		bedroomY_init = config.getInt("bedroomY_init", 100);
+		bedroomZ_init = config.getInt("bedroomZ_init", 0);
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment)->MTCommand.registerCommands(dispatcher)); // 调用静态方法注册命令
 
@@ -85,6 +85,7 @@ public class MirrorTree implements ModInitializer {
             } catch (Exception e) {
 				LOGGER.error(e.getMessage());
             }
+			CompletableFuture.runAsync(() -> MTDreamingPoint.init(server.getOverworld()));
         });
 
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {

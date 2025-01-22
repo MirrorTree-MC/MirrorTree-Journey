@@ -18,7 +18,7 @@ public abstract class MTDreamingPoint {
     public static final int RADIUS = MAX_RANGE;
     public static final List<Hor_Pos> dreamingPointList = new ArrayList<>();
     public static final Hor_Pos[][] dreamingPointMatrix = new Hor_Pos[RADIUS/INTERVAL*2+1][RADIUS/INTERVAL*2+1];
-    public static final MTConfig MT_CONFIG = new MTConfig(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("dreaming_points.json"));
+    public static final MTConfig config = new MTConfig(FabricLoader.getInstance().getConfigDir().resolve(MOD_ID).resolve("dreaming_points.json"));
 
     static {
         for (int i = 0; i < dreamingPointMatrix.length; i++) {
@@ -29,19 +29,21 @@ public abstract class MTDreamingPoint {
     }
 
     public static void init(ServerWorld world) {
+        LOGGER.info("init dreamingPoint");
         int height = world.getHeight();
         dreamingPointList.clear();
-        List<Hor_Pos> dreamingPoint_tmp;
-        dreamingPoint_tmp = MT_CONFIG.get("dreamingPoint", List.class);
-        boolean generated = MT_CONFIG.getOrDefault("generated", false);
+        List<Hor_Pos> dreamingPoint_tmp = new ArrayList<>();
+        boolean generated = config.getOrDefault("generated", false);
         if (generated) {
+            dreamingPoint_tmp = config.get("dreamingPoint", List.class);
             dreamingPointList.addAll(dreamingPoint_tmp);
             for (Hor_Pos pos : dreamingPointList) {
                 dreamingPointMatrix[(pos.x+RADIUS)/INTERVAL][(pos.z+RADIUS)/INTERVAL] = pos;
             }
-            LOGGER.info("dreamingPoint.size() = " + dreamingPointList.size());
+            LOGGER.info("loaded dreamingPoint.size() = " + dreamingPointList.size());
             return;
         }
+        LOGGER.info("generating dreamingPoint");
         for (int x = -RADIUS; x <= RADIUS; x += INTERVAL) {
             for (int z = -RADIUS; z <= RADIUS; z += INTERVAL) {
                 if (x * x + z * z <= RADIUS * RADIUS) {
@@ -64,14 +66,15 @@ public abstract class MTDreamingPoint {
                 dreamingPointMatrix[(pos.x+RADIUS)/INTERVAL][(pos.z+RADIUS)/INTERVAL] = pos;
                 if (dreamingPointList.size() % 100 == 0) {
                     LOGGER.info("dreamingPoint.size() = " + dreamingPointList.size());
-                    MT_CONFIG.set("dreamingPoint", dreamingPointList);
-                    MT_CONFIG.save();
+                    config.set("dreamingPoint", dreamingPointList);
+                    config.save();
                 }
             }
         }
-        MT_CONFIG.set("dreamingPoint", dreamingPointList);
-        MT_CONFIG.set("generated", true);
-        MT_CONFIG.save();
+        config.set("dreamingPoint", dreamingPointList);
+        config.set("generated", true);
+        config.save();
+        LOGGER.info("generated dreamingPoint.size() = " + dreamingPointList.size());
     }
 
     public static BlockPos getRandomPos () {

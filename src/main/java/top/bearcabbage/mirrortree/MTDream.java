@@ -23,7 +23,7 @@ import static top.bearcabbage.mirrortree.MirrorTree.*;
 
 public class MTDream {
     public static final int MAX_RANGE = 3000;
-    private static final int DREAM_RANDOM_RANGE = 256;
+    private static final int DREAM_RANDOM_RANGE = 128;
     public static BlockPos pos;
     public static long lastTime = 0;
 
