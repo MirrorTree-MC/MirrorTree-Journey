@@ -291,6 +291,8 @@ public class MirrorTree implements ModInitializer {
 			Dream.dreamingEffects.remove(player.getUuid());
 			Dream.dreamingHealthAndHunger.remove(player.getUuid());
 			player.teleport(world.getServer().getWorld(bedroom), bedroomX_init, bedroomY_init, bedroomZ_init, 90,0);
+			player.clearStatusEffects();
+			player.changeGameMode(GameMode.ADVENTURE);
 			player.setSpawnPoint(bedroom, new BlockPos(bedroomX_init, bedroomY_init, bedroomZ_init), 90, true, false);
 		}
 
