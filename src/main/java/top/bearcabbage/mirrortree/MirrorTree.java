@@ -127,8 +127,6 @@ public class MirrorTree implements ModInitializer {
 				if (!world.isClient && !player.isCreative() && !(world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof BedBlock || world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof DoorBlock || world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof TradeShopBlock || world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof GrassBlock || world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof LecternBlock)) return ActionResult.FAIL;
 				if (world.getBlockState(hitResult.getBlockPos()).getBlock() instanceof BedBlock) {
 					if (world.isClient) return ActionResult.SUCCESS;
-					((ServerPlayerEntity)player).networkHandler.sendPacket(new TitleS2CPacket(Text.literal("你感到睡意袭来").formatted(Formatting.BOLD).formatted(Formatting.GRAY)));
-					((ServerPlayerEntity)player).networkHandler.sendPacket(new SubtitleS2CPacket(Text.literal("正在寻找安全的入梦点…").formatted(Formatting.ITALIC)));
 					Dream.queueDreamingTask(player.getServer().getOverworld(), (ServerPlayerEntity) player);
 					return ActionResult.SUCCESS;
 				}
@@ -195,7 +193,7 @@ public class MirrorTree implements ModInitializer {
 
 	private static class Dream{
 		public static final int MAX_RANGE = 3000;
-		private static final int DREAM_RANDOM_RANGE = 128;
+		private static final int DREAM_RANDOM_RANGE = 16;
 		public static BlockPos pos;
 		public static long lastTime = 0;
 
@@ -249,21 +247,11 @@ public class MirrorTree implements ModInitializer {
 		public static void dreaming(ServerWorld world, ServerPlayerEntity player) {
 			if(LanternInStormAPI.getRTPSpawn(player)==null) {
 				BlockPos pos_tmp;
-				if (lastTime==0 || System.currentTimeMillis() - lastTime > 30000) {
+				if (lastTime==0 || System.currentTimeMillis() - lastTime > 3000) {
 					lastTime = System.currentTimeMillis();
-					world.getServer().getWorld(bedroom).getPlayers().forEach(p -> {
-						if (!p.equals(player)) {
-							p.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("一个人沉睡了……你有30s时间追赶上他/她").formatted(Formatting.BOLD).formatted(Formatting.GRAY)));
-						}
-					});
 					pos_tmp = pos = getRandomPos(world, 0, 0, MAX_RANGE);
 				} else {
 					lastTime = System.currentTimeMillis();
-					world.getServer().getWorld(bedroom).getPlayers().forEach(p -> {
-						if (!p.equals(player)) {
-							p.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("一个人沉睡了……你有30s时间追赶上他/她").formatted(Formatting.BOLD).formatted(Formatting.GRAY)));
-						}
-					});
 					pos_tmp = getRandomPos(world, pos.getX(), pos.getZ(), DREAM_RANDOM_RANGE);
 				}
 				player.teleport(world, pos_tmp.toCenterPos().getX(), pos_tmp.toCenterPos().getY(), pos_tmp.toCenterPos().getZ(), 0,0);
@@ -277,7 +265,6 @@ public class MirrorTree implements ModInitializer {
 				} else {
 					((ServerPlayerEntity) player).teleport(world.getServer().getOverworld(), pos.toCenterPos().getX(), pos.toCenterPos().getY(), pos.toCenterPos().getZ(), 0, 0);
 				}
-				player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("刚刚那是……梦？").formatted(Formatting.BOLD).formatted(Formatting.GRAY)));
 			}
 			player.changeGameMode(GameMode.SURVIVAL);
 			if (dreamingEffects.containsKey(player.getUuid())) {
@@ -317,7 +304,7 @@ public class MirrorTree implements ModInitializer {
                 int x,z;
                 x = xx + random.nextInt(-range, range);
                 z = zz + random.nextInt(-range, range);
-                while ((x-xx)*(x-xx)+(z-zz)*(z-zz)>range*range){
+                while (x*x+z*z>range*range){
                     x = xx + random.nextInt(-range, range);
                     z = zz + random.nextInt(-range, range);
                 }
