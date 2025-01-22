@@ -285,7 +285,7 @@ public class MirrorTree implements ModInitializer {
 
 		public static void redreaming(ServerWorld world, ServerPlayerEntity player) {
 			((LiSPlayer)player).getLS().setRtpSpawn(null);
-			List<BeginningLanternEntity> entities = (List<BeginningLanternEntity>) player.getServerWorld().getEntitiesByType(BeginningLanternEntity.BEGINNING_LANTERN, (entity)-> entity.getCustomName().getString().equals("入梦点["+player.getName().getString()+"]"));
+			List<BeginningLanternEntity> entities = (List<BeginningLanternEntity>) player.getServerWorld().getEntitiesByType(BeginningLanternEntity.BEGINNING_LANTERN, (entity)-> entity.getCustomName().getString().contains("入梦点["+player.getName().getString()+"]"));
 			if (!entities.isEmpty()) entities.forEach(Entity::discard);
             Dream.dreamingPos.remove(player.getUuid());
 			Dream.dreamingEffects.remove(player.getUuid());
