@@ -1,5 +1,6 @@
 package top.bearcabbage.mirrortree;
 
+import com.google.gson.internal.LinkedTreeMap;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.BlockState;
 import net.minecraft.registry.tag.BlockTags;
@@ -32,13 +33,22 @@ public abstract class MTDreamingPoint {
         LOGGER.info("init dreamingPoint");
         int height = world.getHeight();
         dreamingPointList.clear();
-        List<Hor_Pos> dreamingPoint_tmp = new ArrayList<>();
         boolean generated = config.getOrDefault("generated", false);
+        List<Hor_Pos> dreamingPoint_tmp = new ArrayList<>();
         if (generated) {
-            dreamingPoint_tmp = config.get("dreamingPoint", List.class);
+            List<?> rawList = config.get("dreamingPoint", List.class);
+            for (Object obj : rawList) {
+                if (obj instanceof LinkedTreeMap) {
+                    LinkedTreeMap<?, ?> map = (LinkedTreeMap<?, ?>) obj;
+                    int x = ((Double) map.get("x")).intValue();
+                    int y = ((Double) map.get("y")).intValue();
+                    int z = ((Double) map.get("z")).intValue();
+                    dreamingPoint_tmp.add(new Hor_Pos(x, y, z));
+                }
+            }
             dreamingPointList.addAll(dreamingPoint_tmp);
             for (Hor_Pos pos : dreamingPointList) {
-                dreamingPointMatrix[(pos.x+RADIUS)/INTERVAL][(pos.z+RADIUS)/INTERVAL] = pos;
+                dreamingPointMatrix[(pos.x + RADIUS) / INTERVAL][(pos.z + RADIUS) / INTERVAL] = pos;
             }
             LOGGER.info("loaded dreamingPoint.size() = " + dreamingPointList.size());
             return;
@@ -111,8 +121,19 @@ public abstract class MTDreamingPoint {
             this.y = y;
             this.z = z;
         }
+        public Hor_Pos(double x, double y, double z) {
+            this.x = (int) x;
+            this.y = (int) y;
+            this.z = (int) z;
+        }
+        public Hor_Pos(float x, float y, float z) {
+            this.x = (int) x;
+            this.y = (int) y;
+            this.z = (int) z;
+        }
         public BlockPos toBlockPos() {
             return new BlockPos(x, y, z);
         }
     }
+
 }

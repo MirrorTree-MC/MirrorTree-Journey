@@ -67,6 +67,7 @@ public class MirrorTree implements ModInitializer {
 		bedroomY_init = config.getInt("bedroomY_init", 100);
 		bedroomZ_init = config.getInt("bedroomZ_init", 0);
 
+
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment)->MTCommand.registerCommands(dispatcher)); // 调用静态方法注册命令
 
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {

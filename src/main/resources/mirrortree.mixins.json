@@ -3,8 +3,10 @@
   "package": "top.bearcabbage.mirrortree.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "ComposterBlockMixin",
     "PlayerManagerMixin",
-    "ServerPlayerEntityMixin"
+    "ServerPlayerEntityMixin",
+    "VillagerEntityMixin"
   ],
   "injectors": {
     "defaultRequire": 1
