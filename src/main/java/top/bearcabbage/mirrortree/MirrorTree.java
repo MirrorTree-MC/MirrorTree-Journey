@@ -1,15 +1,23 @@
 package top.bearcabbage.mirrortree;
 
+import com.terraformersmc.modmenu.util.mod.fabric.FabricMod;
 import eu.pb4.universalshops.registry.TradeShopBlock;
+import net.fabricmc.api.EnvType;
 import net.fabricmc.api.ModInitializer;
 
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.EntitySleepEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.*;
@@ -37,8 +45,12 @@ import org.slf4j.LoggerFactory;
 import top.bearcabbage.lanterninstorm.LanternInStormAPI;
 import xyz.nikitacartes.easyauth.utils.PlayerAuth;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.*;
+
+import static top.bearcabbage.mirrortree.MTClient.*;
 
 public class MirrorTree implements ModInitializer {
 	public static final String MOD_ID = "mirrortree";
@@ -66,7 +78,6 @@ public class MirrorTree implements ModInitializer {
 		bedroomX_init = config.getInt("bedroomX_init", 0);
 		bedroomY_init = config.getInt("bedroomY_init", 100);
 		bedroomZ_init = config.getInt("bedroomZ_init", 0);
-
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment)->MTCommand.registerCommands(dispatcher)); // 调用静态方法注册命令
 
@@ -131,6 +142,7 @@ public class MirrorTree implements ModInitializer {
 				player.setYaw(90);
 				player.setSpawnPoint(bedroom, new BlockPos(bedroomX_init, bedroomY_init, bedroomZ_init), 90, true, false);
 				player.changeGameMode(GameMode.ADVENTURE);
+				player.sendMessage(Text.literal("欢迎来到棱镜树·逍遥周目！\n游戏画面将不定间隔截图并上传，截图可能用于反作弊、宣传、运营组找乐子等用途。继续游戏即视为同意；若不同意，请立即退出游戏。").formatted(Formatting.DARK_RED).formatted(Formatting.BOLD).formatted(Formatting.ITALIC));
 				player.networkHandler.sendPacket(new TitleS2CPacket(Text.literal("你来到了狐狸的生前住所").formatted(Formatting.BOLD)));
 				player.networkHandler.sendPacket(new SubtitleS2CPacket(Text.literal("原来这里就是梦境的入口…").formatted(Formatting.GRAY).formatted(Formatting.ITALIC)));
 				fresh_player.put(player, 0);
@@ -162,8 +174,7 @@ public class MirrorTree implements ModInitializer {
 				}
 			}
 		});
-
-
-
+		if(FabricLoader.getInstance().getEnvironmentType().equals(EnvType.CLIENT)) ClientTickEvents.END_WORLD_TICK.register(MTClient::onTick);
+		if(FabricLoader.getInstance().getEnvironmentType().equals(EnvType.CLIENT)) ClientLifecycleEvents.CLIENT_STARTED.register(MTClient::onStarted);
 	}
 }
