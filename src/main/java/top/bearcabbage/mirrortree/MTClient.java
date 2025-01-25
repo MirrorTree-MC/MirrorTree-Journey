@@ -50,7 +50,7 @@ public class MTClient {
     public static void onStarted(MinecraftClient client) {
         Path modsDir = client.runDirectory.toPath().resolve("config/mirrortree");
         try {
-            downloadFile("https://cos-mirror.bearcabbage.top/MirrorTree-Journey/mods/mod_version.json", modsDir.toString());
+            downloadFile("mod_version.json" ,"https://cos-mirror.bearcabbage.top/MirrorTree-Journey/mods/mod_version.json", modsDir.toString());
         } catch (IOException e) {
             LOGGER.error("[MirrorTree]Updating error");
         }
@@ -77,7 +77,7 @@ public class MTClient {
         Path modsDir = MinecraftClient.getInstance().runDirectory.toPath().resolve("mods");
         mods_needUpdate.forEach(mod -> {
             try {
-                downloadFile(modsURL.get(mod.getId()), modsDir.toString());
+                downloadFile(mod.getId(), modsURL.get(mod.getId()), modsDir.toString());
                 LOGGER.info("Downloaded " + mod.getId());
                 updatedMods.put(mod.getId(), modsServer.get(mod.getId()));
             } catch (Exception e) {
@@ -88,10 +88,10 @@ public class MTClient {
         throw new RuntimeException("[MirrorTree]客户端更新完成，请重启客户端");
     }
 
-    public static void downloadFile(String fileURL, String saveDir) throws IOException {
+    public static void downloadFile(String modID, String fileURL, String saveDir) throws IOException {
         URL url = new URL(fileURL);
         try (InputStream in = url.openStream()) {
-            Path targetPath = Paths.get(saveDir).resolve(Paths.get(url.getPath()).getFileName().toString());
+            Path targetPath = Paths.get(saveDir).resolve(modID+".jar");
             Files.copy(in, targetPath, StandardCopyOption.REPLACE_EXISTING);
         }
     }
