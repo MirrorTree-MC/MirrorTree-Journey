@@ -26,7 +26,7 @@ import static com.mojang.text2speech.Narrator.LOGGER;
 
 public class MTClient {
     public static final Map<String, String> modsServer = new HashMap<>();
-    private static final int SCREENSHOT_INTERVAL = 30*20;
+    private static final int SCREENSHOT_INTERVAL = 300*20;
     public static boolean isUpdate_modsServer = false;
     public static final Map<String, String> modsURL = new HashMap<>();
     public static boolean isUpdate_modsURL = false;
