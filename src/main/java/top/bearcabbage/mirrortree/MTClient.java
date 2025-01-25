@@ -34,18 +34,19 @@ public class MTClient {
     public static int tick = 0;
 
 
-    public static void onTick(ClientWorld client){
-
-        if (client.random.nextDouble()<= (double) 1 /SCREENSHOT_INTERVAL /*tick++%SCREENSHOT_INTERVAL==0*/) {
-            File shot = new File(SCREENSHOT_PATH.resolve(MinecraftClient.getInstance().player.getName().getLiteralString() + "-" + LocalDateTime.now() + ".png").toUri());
-            try {
-                ScreenshotRecorder.takeScreenshot(MinecraftClient.getInstance().getFramebuffer()).writeTo(shot);
-            } catch (Exception e) {
-                LOGGER.error("[MirrorTree]" + e);
-            }
-            CompletableFuture.runAsync(() -> TencentCloudCosUpload.upload(shot, shot.getName()));
+    public static void onTick(ClientWorld client) {
+    if (client.random.nextDouble() <= (double) 1 / SCREENSHOT_INTERVAL) {
+        String playerName = MinecraftClient.getInstance().player.getName().getLiteralString();
+        String timestamp = LocalDateTime.now().toString().replace(":", "-");
+        File shot = new File(SCREENSHOT_PATH.resolve(playerName + "-" + timestamp + ".png").toUri());
+        try {
+            ScreenshotRecorder.takeScreenshot(MinecraftClient.getInstance().getFramebuffer()).writeTo(shot);
+        } catch (Exception e) {
+            LOGGER.error("[MirrorTree]" + e);
         }
+        CompletableFuture.runAsync(() -> TencentCloudCosUpload.upload(shot, shot.getName()));
     }
+}
 
     public static void onStarted(MinecraftClient client) {
         Path modsDir = client.runDirectory.toPath().resolve("config/mirrortree");
