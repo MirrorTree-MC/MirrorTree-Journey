@@ -1,7 +1,9 @@
 package top.bearcabbage.mirrortree.mixin;
 
 import com.mojang.authlib.GameProfile;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.s2c.play.OverlayMessageS2CPacket;
 import net.minecraft.server.network.ServerPlayNetworkHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -30,11 +32,11 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity {
         super(world, pos, yaw, gameProfile);
     }
 
-    @Inject(method = "dropSelectedItem", at = @At("HEAD"), cancellable = true)
-    public void dropSelectedItem(boolean entireStack, CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "dropItem", at = @At("HEAD"), cancellable = true)
+    public void dropItem(ItemStack stack, boolean throwRandomly, boolean retainOwnership, CallbackInfoReturnable<ItemEntity> cir) {
         if (this.getServer().getWorld(bedroom)!=null && this.getServerWorld()==this.getServer().getWorld(bedroom)) {
             this.networkHandler.sendPacket(new OverlayMessageS2CPacket(Text.literal("在狐狸家里不能丢东西哦")));
-            cir.cancel();
+            cir.setReturnValue(null);
         }
     }
 }

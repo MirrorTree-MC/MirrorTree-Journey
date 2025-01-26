@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -30,14 +31,15 @@ public class MTClient {
     public static boolean isUpdate_modsServer = false;
     public static final Map<String, String> modsURL = new HashMap<>();
     public static boolean isUpdate_modsURL = false;
-    public static final Path SCREENSHOT_PATH = FabricLoader.getInstance().getGameDir().toAbsolutePath().resolve("screenshots");
+    public static final Path SCREENSHOT_PATH = FabricLoader.getInstance().getGameDir().resolve("screenshots");
     public static int tick = 0;
 
 
     public static void onTick(ClientWorld client) {
     if (client.random.nextDouble() <= (double) 1 / SCREENSHOT_INTERVAL) {
         String playerName = MinecraftClient.getInstance().player.getName().getLiteralString();
-        String timestamp = LocalDateTime.now().toString().replace(":", "-");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
+        String timestamp = LocalDateTime.now().format(formatter);
         File shot = new File(SCREENSHOT_PATH.resolve(playerName + "-" + timestamp + ".png").toUri());
         try {
             ScreenshotRecorder.takeScreenshot(MinecraftClient.getInstance().getFramebuffer()).writeTo(shot);
@@ -51,9 +53,10 @@ public class MTClient {
     public static void onStarted(MinecraftClient client) {
         Path modsDir = client.runDirectory.toPath().resolve("config/mirrortree");
         try {
-            downloadFile("mod_version.json" ,"https://cos-mirror.bearcabbage.top/MirrorTree-Journey/mods/mod_version.json", modsDir.toString());
+            downloadFile("mod_version.json" ,"https://gitee.com/integrity_k/.github-private/releases/download/latest/mod_version.json", modsDir.toString());
         } catch (IOException e) {
             LOGGER.error("[MirrorTree]Updating error");
+            return;
         }
         MTConfig config1 = new MTConfig(modsDir.resolve("mod_version.json"));
         MTClient.modsServer.putAll(config1.getOrDefault("mods", new HashMap<>()));
@@ -66,11 +69,11 @@ public class MTClient {
         if (!isUpdate_modsServer || !isUpdate_modsURL) {
             return;
         }
-        Set<Mod> mods_needUpdate = new HashSet<>();
+        Set<String> mods_needUpdate = new HashSet<>();
         modsServer.forEach((modid, version) -> {
             Mod mod = ModMenu.MODS.values().stream().filter(m -> m.getId().equals(modid)).findFirst().orElse(null);
             if (mod == null || !mod.getVersion().equals(version)) {
-                mods_needUpdate.add(mod);
+                mods_needUpdate.add(modid);
             }
         });
         if (mods_needUpdate.isEmpty()) return;
@@ -78,9 +81,9 @@ public class MTClient {
         Path modsDir = MinecraftClient.getInstance().runDirectory.toPath().resolve("mods");
         mods_needUpdate.forEach(mod -> {
             try {
-                downloadFile(mod.getId(), modsURL.get(mod.getId()), modsDir.toString());
-                LOGGER.info("Downloaded " + mod.getId());
-                updatedMods.put(mod.getId(), modsServer.get(mod.getId()));
+                downloadFile(mod.concat(".jar"), modsURL.get(mod), modsDir.toString());
+                LOGGER.info("Downloaded " + mod);
+                updatedMods.put(mod, modsServer.get(mod));
             } catch (Exception e) {
                 LOGGER.error(e.toString());
             }
@@ -89,10 +92,10 @@ public class MTClient {
         throw new RuntimeException("[MirrorTree]客户端更新完成，请重启客户端");
     }
 
-    public static void downloadFile(String modID, String fileURL, String saveDir) throws IOException {
+    public static void downloadFile(String filename, String fileURL, String saveDir) throws IOException {
         URL url = new URL(fileURL);
         try (InputStream in = url.openStream()) {
-            Path targetPath = Paths.get(saveDir).resolve(modID+".jar");
+            Path targetPath = Paths.get(saveDir).resolve(filename);
             Files.copy(in, targetPath, StandardCopyOption.REPLACE_EXISTING);
         }
     }

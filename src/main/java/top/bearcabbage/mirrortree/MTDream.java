@@ -76,15 +76,14 @@ public class MTDream {
 
     public static void dreaming(ServerWorld world, ServerPlayerEntity player) {
         if(LanternInStormAPI.getRTPSpawn(player)==null) {
-            BlockPos pos_tmp;
             if (lastTime==0 || System.currentTimeMillis() - lastTime > 3000) {
                 lastTime = System.currentTimeMillis();
-                pos_tmp = pos = getRandomPos(0, 0, MAX_RANGE);
+                pos = getRandomPos(0, 0, MAX_RANGE);
             } else {
                 lastTime = System.currentTimeMillis();
-                pos_tmp = getRandomPos(pos.getX(), pos.getZ(), DREAM_RANDOM_RANGE);
+                pos = getRandomPos(pos.getX(), pos.getZ(), DREAM_RANDOM_RANGE);
             }
-            player.teleport(world, pos_tmp.toCenterPos().getX(), pos_tmp.toCenterPos().getY(), pos_tmp.toCenterPos().getZ(), 0,0);
+            player.teleport(world, pos.toCenterPos().getX(), pos.toCenterPos().getY(), pos.toCenterPos().getZ(), 0,0);
             LanternInStormAPI.setRTPSpawn(player, pos);
         } else {
             pos = LanternInStormAPI.getRTPSpawn(player);
