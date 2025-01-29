@@ -106,7 +106,7 @@ public class MirrorTree implements ModInitializer {
 		});
 
 		EntitySleepEvents.START_SLEEPING.register((entity, sleepingLocation) -> {
-			entity.sendMessage(Texts.bracketed(Text.literal("=======§l[醒来走走]§r=======").styled((style) -> style.withColor(Formatting.LIGHT_PURPLE).withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/wakeup")).withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.literal("点击回到卧室（出生点大厅）维度"))))));
+			entity.sendMessage(Texts.bracketed(Text.literal("=======[醒来走走]=======").formatted(Formatting.BOLD).styled((style) -> style.withColor(Formatting.LIGHT_PURPLE).withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/wakeup")).withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.literal("点击回到卧室（出生点大厅）维度"))))));
 		});
 
 		UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
